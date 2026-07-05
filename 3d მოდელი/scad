@@ -1,0 +1,159 @@
+// --- SETTINGS AND DIMENSIONS ---
+$fn = 60; // Smoothness of circles/cylinders
+
+// Main Box Dimensions
+box_width = 200;
+box_length = 140;
+box_height = 90;
+wall_thickness = 3;
+
+// Top Black Flaps
+flap_width = 75;
+flap_length = 105;
+flap_thickness = 2.5;
+
+// Electronic Components (Center Line)
+button_width = 12; // Square button width
+led_diameter = 5;
+
+// Which part do you want to render? 
+// Options: "all", "main_body", "top_lid", "left_flap", "right_flap"
+render_part = "all"; 
+
+
+// --- SCENE PLACEMENT ---
+if (render_part == "all") {
+    // Complete Assembly View
+    main_body();
+    
+    // Top Lid (Sits right on top of the main body)
+    translate([0, 0, box_height - wall_thickness]) top_lid();
+    
+    // Left Black Flap (Placed precisely in its slot)
+    translate([-box_width/2 + 10 + flap_width/2, -box_length/2 + 10 + flap_length, box_height - wall_thickness + 1.5]) 
+        black_flap();
+        
+    // Right Black Flap (Placed precisely in its slot)
+    translate([box_width/2 - 10 - flap_width/2, -box_length/2 + 10 + flap_length, box_height - wall_thickness + 1.5]) 
+        black_flap();
+
+} else if (render_part == "main_body") {
+    main_body();
+} else if (render_part == "top_lid") {
+    top_lid();
+} else if (render_part == "left_flap" || render_part == "right_flap") {
+    black_flap();
+}
+
+
+// --- MODULES ---
+
+// 1. Main Lower Body (With Black "SPB" Text on the Front)
+module main_body() {
+    // White Box Enclosure
+    color("White") {
+        difference() {
+            // Outer block
+            translate([-box_width/2, -box_length/2, 0])
+                cube([box_width, box_length, box_height - wall_thickness]);
+            
+            // Inner hollow space
+            translate([-box_width/2 + wall_thickness, -box_length/2 + wall_thickness, wall_thickness])
+                cube([box_width - wall_thickness*2, box_length - wall_thickness*2, box_height]);
+        }
+    }
+    
+    // Black SPB Text on Front Face (0.5 mm extruded embossed text)
+    color("Black") {
+        translate([0, -box_length/2 - 0.5, box_height/2]) 
+            rotate([90, 0, 0]) 
+                linear_extrude(height = 1) 
+                    text("SPB", size = 16, font = "Liberation Sans:style=Bold", halign = "center", valign = "center");
+    }
+}
+
+// 2. Top White Panel (With Button and LED Integrated)
+module top_lid() {
+    // Top Panel Plate
+    color("White") {
+        difference() {
+            // Main top plate
+            translate([-box_width/2, -box_length/2, 0])
+                cube([box_width, box_length, wall_thickness]);
+            
+            // Recessed slot for the left flap
+            translate([-box_width/2 + 10, -box_length/2 + 10, 1.5])
+                cube([flap_width, flap_length, 2]);
+            
+            // Recessed slot for the right flap
+            translate([box_width/2 - 10 - flap_width, -box_length/2 + 10, 1.5])
+                cube([flap_width, flap_length, 2]);
+                
+            // Square Button Cutout at the bottom
+            translate([0, -20, -1])
+                cube([button_width + 0.2, button_width + 0.2, wall_thickness + 2], center=true);
+                
+            // Round LED Cutout at the top
+            translate([0, 15, -1])
+                cylinder(d=led_diameter + 0.2, h=wall_thickness + 2, center=true);
+        }
+        
+        // --- WHITE HINGE MOUNTS ---
+        // Left Flap Hinge Mounts
+        translate([-box_width/2 + 10, -box_length/2 + 10 + flap_length, 1.5]) white_hinge_ear();
+        translate([-box_width/2 + 10 + flap_width, -box_length/2 + 10 + flap_length, 1.5]) white_hinge_ear();
+        
+        // Right Flap Hinge Mounts
+        translate([box_width/2 - 10 - flap_width, -box_length/2 + 10 + flap_length, 1.5]) white_hinge_ear();
+        translate([box_width/2 - 10, -box_length/2 + 10 + flap_length, 1.5]) white_hinge_ear();
+    }
+    
+    // --- ELECTRONIC COMPONENTS MODELING ---
+    // Integrated Push Button (Black button with silver/metal frame)
+    translate([0, -20, wall_thickness - 1.5]) {
+        color("Silver") cube([button_width, button_width, 2], center=true); // Metal body
+        color("Black") translate([0, 0, 1]) cylinder(d=button_width-4, h=2, center=true); // Black actuator
+    }
+    
+    // Integrated LED (Red status LED)
+    translate([0, 15, wall_thickness - 1]) {
+        color("Red", 0.8) cylinder(d=led_diameter, h=4, center=true);
+        color("Red", 0.8) translate([0, 0, 2]) sphere(d=led_diameter); // Rounded LED bulb top
+    }
+}
+
+// 3. Black Top Flaps and Rods
+module black_flap() {
+    color("DimGray") {
+        // Main Black Plate
+        translate([-flap_width/2, -flap_length, 0])
+            cube([flap_width, flap_length, flap_thickness]);
+        
+        // Main Hinge Cylinder on Top of the Flap
+        translate([-flap_width/2, 0, flap_thickness/2])
+            rotate([0, 90, 0])
+                cylinder(d=6, h=flap_width);
+                
+        // Thin Black Hinge Rod passing through
+        translate([-flap_width/2 - 8, 0, flap_thickness/2])
+            rotate([0, 90, 0])
+                cylinder(d=3, h=flap_width + 16);
+                
+        // Small stopper caps at the ends of the rod
+        translate([-flap_width/2 - 8, 0, flap_thickness/2])
+            rotate([0, 90, 0]) cylinder(d=5, h=1.5);
+            
+        translate([flap_width/2 + 6.5, 0, flap_thickness/2])
+            rotate([0, 90, 0]) cylinder(d=5, h=1.5);
+    }
+}
+
+// Helper module for the white hinge mounts on the top panel
+module white_hinge_ear() {
+    translate([0, 0, 1.5])
+    rotate([0, 90, 0])
+    difference() {
+        cylinder(d=8, h=4, center=true);
+        cylinder(d=3.5, h=6, center=true); // Hole for the rod
+    }
+}
